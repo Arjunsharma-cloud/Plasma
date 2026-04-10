@@ -257,13 +257,14 @@ func getEvents(w http.ResponseWriter, r *http.Request) {
         SELECT e.event_id, e.title, e.description, e.event_date, 
                e.registration_deadline, e.capacity, e.location, e.prize,
                e.event_type, e.min_team_size, e.max_team_size,
-               e.host_id, COALESCE(h.name, '') as host_name
+               COALESCE(e.host_id, 0), COALESCE(h.name, '')
         FROM events e
         LEFT JOIN hosts h ON e.host_id = h.host_id
-        WHERE e.event_date > NOW()
         ORDER BY e.event_date`)
+    
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
         return
     }
     defer rows.Close()
@@ -274,9 +275,12 @@ func getEvents(w http.ResponseWriter, r *http.Request) {
         var title, desc, eventDate, regDeadline, location, prize, eventType, hostName string
         var capacity, minTeam, maxTeam int
         
-        rows.Scan(&id, &title, &desc, &eventDate, &regDeadline,
+        err := rows.Scan(&id, &title, &desc, &eventDate, &regDeadline,
             &capacity, &location, &prize, &eventType, &minTeam, &maxTeam,
             &hostID, &hostName)
+        if err != nil {
+            continue
+        }
         
         events = append(events, map[string]interface{}{
             "event_id": id, "title": title, "description": desc,
@@ -286,6 +290,7 @@ func getEvents(w http.ResponseWriter, r *http.Request) {
             "host_id": hostID, "host_name": hostName,
         })
     }
+    w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(events)
 }
 

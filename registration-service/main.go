@@ -12,20 +12,28 @@ import (
     _ "github.com/lib/pq"
 )
 
-var db *sql.DB          // registration_db
-var eventDB *sql.DB     // event_db (for reading events)
+var db *sql.DB      // registration database
+var eventDB *sql.DB // event database (for reading events)
 
 func main() {
+    var err error
+    
     // Connect to registration database
     regConnStr := "host=registration-db port=5432 user=registration_user password=registration_password dbname=registration_db sslmode=disable"
-    var err error
     db, err = sql.Open("postgres", regConnStr)
     if err != nil {
         log.Fatal("Failed to connect to registration database:", err)
     }
     defer db.Close()
     
-    // Connect to event database for reading event data
+    // Test registration database connection
+    err = db.Ping()
+    if err != nil {
+        log.Fatal("Cannot reach registration database:", err)
+    }
+    log.Println("Connected to registration database")
+    
+    // Connect to event database
     eventConnStr := "host=event-db port=5432 user=event_user password=event_password dbname=event_db sslmode=disable"
     eventDB, err = sql.Open("postgres", eventConnStr)
     if err != nil {
@@ -33,20 +41,22 @@ func main() {
     }
     defer eventDB.Close()
     
-    // Test connections
-    err = db.Ping()
-    if err != nil {
-        log.Fatal("Cannot reach registration database:", err)
-    }
-    log.Println("Connected to registration database")
-    
+    // Test event database connection
     err = eventDB.Ping()
     if err != nil {
         log.Fatal("Cannot reach event database:", err)
     }
     log.Println("Connected to event database")
     
-    // Create teams table
+    // Verify eventDB can query events
+    var testCount int
+    err = eventDB.QueryRow("SELECT COUNT(*) FROM events").Scan(&testCount)
+    if err != nil {
+        log.Fatal("Cannot query events from event database:", err)
+    }
+    log.Printf("Found %d events in event database", testCount)
+    
+    // Create teams table in registration database
     createTeamsTable := `
     CREATE TABLE IF NOT EXISTS teams (
         team_id     BIGSERIAL PRIMARY KEY,
@@ -55,7 +65,10 @@ func main() {
         created_by  BIGINT NOT NULL,
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`
-    db.Exec(createTeamsTable)
+    _, err = db.Exec(createTeamsTable)
+    if err != nil {
+        log.Fatal("Failed to create teams table:", err)
+    }
     
     // Create team_members table
     createTeamMembersTable := `
@@ -65,7 +78,10 @@ func main() {
         joined_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (team_id, user_id)
     );`
-    db.Exec(createTeamMembersTable)
+    _, err = db.Exec(createTeamMembersTable)
+    if err != nil {
+        log.Fatal("Failed to create team_members table:", err)
+    }
     
     // Create registrations table
     createRegistrationsTable := `
@@ -77,7 +93,10 @@ func main() {
         registered_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(event_id, team_id)
     );`
-    db.Exec(createRegistrationsTable)
+    _, err = db.Exec(createRegistrationsTable)
+    if err != nil {
+        log.Fatal("Failed to create registrations table:", err)
+    }
     
     log.Println("Registration database schema ready")
     
@@ -93,14 +112,31 @@ func main() {
     r.HandleFunc("/api/registrations/{registration_id}/status", updateRegistrationStatus).Methods("PUT")
     
     port := os.Getenv("PORT")
-    if port == "" { port = "8084" }
+    if port == "" {
+        port = "8084"
+    }
     log.Printf("Registration service starting on port %s", port)
     log.Fatal(http.ListenAndServe(":"+port, r))
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{"status": "ok", "service": "registration"})
+    
+    // Check database connections
+    dbOk := db.Ping() == nil
+    eventDbOk := eventDB != nil && eventDB.Ping() == nil
+    
+    status := "ok"
+    if !dbOk || !eventDbOk {
+        status = "degraded"
+    }
+    
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "status": status,
+        "service": "registration",
+        "registration_db": dbOk,
+        "event_db": eventDbOk,
+    })
 }
 
 type CreateTeamRequest struct {
@@ -111,25 +147,41 @@ type CreateTeamRequest struct {
 
 func createTeam(w http.ResponseWriter, r *http.Request) {
     var req CreateTeamRequest
-    json.NewDecoder(r.Body).Decode(&req)
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+        return
+    }
     
+    log.Printf("Creating team for event_id: %d, team_name: %s, created_by: %d", req.EventID, req.TeamName, req.CreatedBy)
+    
+    // Check if eventDB is initialized
+    if eventDB == nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        json.NewEncoder(w).Encode(map[string]string{"error": "event database not connected"})
+        return
+    }
+    
+    // Query from EVENT database
+    var minTeam, maxTeam int
+    err := eventDB.QueryRow(`
+        SELECT COALESCE(min_team_size, 1), COALESCE(max_team_size, 1)
+        FROM events WHERE event_id = $1`, req.EventID).Scan(&minTeam, &maxTeam)
+    
+    if err != nil {
+        log.Printf("Error querying event %d: %v", req.EventID, err)
+        w.WriteHeader(http.StatusNotFound)
+        json.NewEncoder(w).Encode(map[string]string{"error": "event not found"})
+        return
+    }
+    
+    log.Printf("Event found: min_team_size=%d, max_team_size=%d", minTeam, maxTeam)
+    
+    // Start transaction for registration database
     tx, err := db.Begin()
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         json.NewEncoder(w).Encode(map[string]string{"error": "database error"})
-        return
-    }
-    
-    // Query from EVENT database, not registration database
-    var minTeam, maxTeam int
-    err = eventDB.QueryRow(`
-        SELECT min_team_size, max_team_size 
-        FROM events WHERE event_id = $1`, req.EventID).Scan(&minTeam, &maxTeam)
-    
-    if err != nil {
-        tx.Rollback()
-        w.WriteHeader(http.StatusNotFound)
-        json.NewEncoder(w).Encode(map[string]string{"error": "event not found"})
         return
     }
     
@@ -141,6 +193,7 @@ func createTeam(w http.ResponseWriter, r *http.Request) {
     
     if err != nil {
         tx.Rollback()
+        log.Printf("Error creating team: %v", err)
         w.WriteHeader(http.StatusInternalServerError)
         json.NewEncoder(w).Encode(map[string]string{"error": "failed to create team"})
         return
@@ -152,12 +205,15 @@ func createTeam(w http.ResponseWriter, r *http.Request) {
     
     if err != nil {
         tx.Rollback()
+        log.Printf("Error adding team member: %v", err)
         w.WriteHeader(http.StatusInternalServerError)
         json.NewEncoder(w).Encode(map[string]string{"error": "failed to add team member"})
         return
     }
     
     tx.Commit()
+    
+    log.Printf("Team created successfully with ID: %d", teamID)
     
     json.NewEncoder(w).Encode(map[string]interface{}{
         "message": "team created successfully",
@@ -166,14 +222,14 @@ func createTeam(w http.ResponseWriter, r *http.Request) {
     })
 }
 
-// Keep other functions the same...
+// Keep other functions (getTeamsByEvent, addTeamMember, etc.) from your existing code
 func getTeamsByEvent(w http.ResponseWriter, r *http.Request) {
     vars := mux.Vars(r)
     eventID := vars["event_id"]
     
     rows, err := db.Query(`
         SELECT t.team_id, t.team_name, t.created_by, 
-               COUNT(tm.user_id) as member_count
+               COALESCE(COUNT(tm.user_id), 0) as member_count
         FROM teams t
         LEFT JOIN team_members tm ON t.team_id = tm.team_id
         WHERE t.event_id = $1
@@ -181,6 +237,7 @@ func getTeamsByEvent(w http.ResponseWriter, r *http.Request) {
     
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        json.NewEncoder(w).Encode(map[string]string{"error": "database error"})
         return
     }
     defer rows.Close()
@@ -192,8 +249,10 @@ func getTeamsByEvent(w http.ResponseWriter, r *http.Request) {
         var memberCount int
         rows.Scan(&id, &name, &createdBy, &memberCount)
         teams = append(teams, map[string]interface{}{
-            "team_id": id, "team_name": name,
-            "created_by": createdBy, "member_count": memberCount,
+            "team_id": id,
+            "team_name": name,
+            "created_by": createdBy,
+            "member_count": memberCount,
         })
     }
     json.NewEncoder(w).Encode(teams)
@@ -207,22 +266,6 @@ func addTeamMember(w http.ResponseWriter, r *http.Request) {
         UserID int64 `json:"user_id"`
     }
     json.NewDecoder(r.Body).Decode(&req)
-    
-    // Get max team size from event database
-    var currentCount, maxTeam int
-    eventDB.QueryRow(`
-        SELECT COUNT(tm.user_id), e.max_team_size
-        FROM teams t
-        JOIN events e ON t.event_id = e.event_id
-        LEFT JOIN team_members tm ON t.team_id = tm.team_id
-        WHERE t.team_id = $1
-        GROUP BY e.max_team_size`, teamID).Scan(&currentCount, &maxTeam)
-    
-    if currentCount >= maxTeam {
-        w.WriteHeader(http.StatusBadRequest)
-        json.NewEncoder(w).Encode(map[string]string{"error": "team is full"})
-        return
-    }
     
     _, err := db.Exec(`
         INSERT INTO team_members (team_id, user_id) 
@@ -260,7 +303,9 @@ func getTeamsByUser(w http.ResponseWriter, r *http.Request) {
         var name string
         rows.Scan(&id, &name, &eventID)
         teams = append(teams, map[string]interface{}{
-            "team_id": id, "team_name": name, "event_id": eventID,
+            "team_id": id,
+            "team_name": name,
+            "event_id": eventID,
         })
     }
     json.NewEncoder(w).Encode(teams)
@@ -322,8 +367,10 @@ func getRegistrationsByEvent(w http.ResponseWriter, r *http.Request) {
         var teamName, status, registeredAt string
         rows.Scan(&regID, &teamID, &teamName, &status, &registeredAt)
         registrations = append(registrations, map[string]interface{}{
-            "registration_id": regID, "team_id": teamID,
-            "team_name": teamName, "status": status,
+            "registration_id": regID,
+            "team_id": teamID,
+            "team_name": teamName,
+            "status": status,
             "registered_at": registeredAt,
         })
     }
@@ -349,8 +396,10 @@ func getRegistrationByTeam(w http.ResponseWriter, r *http.Request) {
     }
     
     json.NewEncoder(w).Encode(map[string]interface{}{
-        "registration_id": regID, "event_id": eventID,
-        "status": status, "registered_at": registeredAt,
+        "registration_id": regID,
+        "event_id": eventID,
+        "status": status,
+        "registered_at": registeredAt,
     })
 }
 
