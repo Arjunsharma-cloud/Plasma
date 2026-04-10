@@ -1,7 +1,47 @@
 services:
-  # Redis - using local build (not pulling from Docker Hub)
+  # ============ DATABASES ============
+  auth-db:
+    image: postgres:15
+    container_name: auth-db
+    environment:
+      - POSTGRES_DB=auth_db
+      - POSTGRES_USER=auth_user
+      - POSTGRES_PASSWORD=auth_password
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  event-db:
+    image: postgres:15
+    container_name: event-db
+    environment:
+      - POSTGRES_DB=event_db
+      - POSTGRES_USER=event_user
+      - POSTGRES_PASSWORD=event_password
+    ports:
+      - "5433:5432"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  registration-db:
+    image: postgres:15
+    container_name: registration-db
+    environment:
+      - POSTGRES_DB=registration_db
+      - POSTGRES_USER=registration_user
+      - POSTGRES_PASSWORD=registration_password
+    ports:
+      - "5434:5432"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # ============ REDIS ============
   redis:
-    build: ./redis-local
+    image: redis:7-alpine
     container_name: redis
     ports:
       - "6379:6379"
@@ -9,7 +49,124 @@ services:
       - app-network
     restart: unless-stopped
 
-  # Load Balancer
+  # ============ MICROSERVICES ============
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      - PORT=8082
+    ports:
+      - "8082:8082"
+    networks:
+      - app-network
+    depends_on:
+      - auth-db
+    restart: unless-stopped
+
+  event-service:
+    build: ./event-service
+    container_name: event-service
+    environment:
+      - PORT=8083
+    ports:
+      - "8083:8083"
+    networks:
+      - app-network
+    depends_on:
+      - event-db
+    restart: unless-stopped
+
+  registration-service:
+    build: ./registration-service
+    container_name: registration-service
+    environment:
+      - PORT=8084
+    ports:
+      - "8084:8084"
+    networks:
+      - app-network
+    depends_on:
+      - registration-db
+    restart: unless-stopped
+
+  # ============ RATE LIMITER ============
+  rate-limiter:
+    build: ./rate-limiter
+    container_name: rate-limiter
+    environment:
+      - PORT=8081
+      - REDIS_ADDR=redis:6379
+      - MAX_REQUESTS_PER_SECOND=100
+    ports:
+      - "8085:8081"
+    networks:
+      - app-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ============ API GATEWAYS ============
+  api-gateway-1:
+    build: ./api-gateway
+    container_name: api-gateway-1
+    environment:
+      - PORT=8080
+      - AUTH_SERVICE_URL=http://auth-service:8082
+      - EVENT_SERVICE_URL=http://event-service:8083
+      - REGISTRATION_SERVICE_URL=http://registration-service:8084
+      - RATE_LIMITER_URL=http://rate-limiter:8081
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    depends_on:
+      - auth-service
+      - event-service
+      - registration-service
+      - rate-limiter
+    restart: unless-stopped
+
+  api-gateway-2:
+    build: ./api-gateway
+    container_name: api-gateway-2
+    environment:
+      - PORT=8081
+      - AUTH_SERVICE_URL=http://auth-service:8082
+      - EVENT_SERVICE_URL=http://event-service:8083
+      - REGISTRATION_SERVICE_URL=http://registration-service:8084
+      - RATE_LIMITER_URL=http://rate-limiter:8081
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+    depends_on:
+      - auth-service
+      - event-service
+      - registration-service
+      - rate-limiter
+    restart: unless-stopped
+
+  api-gateway-3:
+    build: ./api-gateway
+    container_name: api-gateway-3
+    environment:
+      - PORT=8082
+      - AUTH_SERVICE_URL=http://auth-service:8082
+      - EVENT_SERVICE_URL=http://event-service:8083
+      - REGISTRATION_SERVICE_URL=http://registration-service:8084
+      - RATE_LIMITER_URL=http://rate-limiter:8081
+    ports:
+      - "8089:8082"
+    networks:
+      - app-network
+    depends_on:
+      - auth-service
+      - event-service
+      - registration-service
+      - rate-limiter
+    restart: unless-stopped
+
+  # ============ LOAD BALANCER ============
   load-balancer:
     build: ./load-balancer
     container_name: load-balancer
@@ -21,97 +178,6 @@ services:
       - api-gateway-1
       - api-gateway-2
       - api-gateway-3
-    restart: unless-stopped
-
-  # API Gateway Instances
-  api-gateway-1:
-    build: ./api-gateway
-    container_name: api-gateway-1
-    environment:
-      - PORT=8080
-      - AUTH_SERVICE_URL=http://auth-service:8082
-      - EVENT_SERVICE_URL=http://event-service:8083
-      - REGISTRATION_SERVICE_URL=http://registration-service:8084
-    networks:
-      - app-network
-    depends_on:
-      - auth-service
-      - event-service
-      - registration-service
-    restart: unless-stopped
-
-  api-gateway-2:
-    build: ./api-gateway
-    container_name: api-gateway-2
-    environment:
-      - PORT=8081
-      - AUTH_SERVICE_URL=http://auth-service:8082
-      - EVENT_SERVICE_URL=http://event-service:8083
-      - REGISTRATION_SERVICE_URL=http://registration-service:8084
-    networks:
-      - app-network
-    depends_on:
-      - auth-service
-      - event-service
-      - registration-service
-    restart: unless-stopped
-
-  api-gateway-3:
-    build: ./api-gateway
-    container_name: api-gateway-3
-    environment:
-      - PORT=8082
-      - AUTH_SERVICE_URL=http://auth-service:8082
-      - EVENT_SERVICE_URL=http://event-service:8083
-      - REGISTRATION_SERVICE_URL=http://registration-service:8084
-    networks:
-      - app-network
-    depends_on:
-      - auth-service
-      - event-service
-      - registration-service
-    restart: unless-stopped
-
-  # Rate Limiter
-  rate-limiter:
-    build: ./rate-limiter
-    container_name: rate-limiter
-    environment:
-      - PORT=8081
-      - REDIS_ADDR=redis:6379
-      - MAX_REQUESTS_PER_SECOND=100
-    networks:
-      - app-network
-    depends_on:
-      - redis
-    restart: unless-stopped
-
-  # Microservices
-  auth-service:
-    build: ./auth-service
-    container_name: auth-service
-    environment:
-      - PORT=8082
-    networks:
-      - app-network
-    restart: unless-stopped
-
-  event-service:
-    build: ./event-service
-    container_name: event-service
-    environment:
-      - PORT=8083
-    networks:
-      - app-network
-    restart: unless-stopped
-
-  registration-service:
-    build: ./registration-service
-    container_name: registration-service
-    environment:
-      - PORT=8084
-    networks:
-      - app-network
     restart: unless-stopped
 
 networks:

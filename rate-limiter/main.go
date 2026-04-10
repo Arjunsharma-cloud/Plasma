@@ -68,6 +68,108 @@ func (rl *RateLimiter) allowRequest(key string) bool {
     return true
 }
 
+// NEW: Rate limit check endpoint for API Gateway
+func rateLimitCheckHandler(w http.ResponseWriter, r *http.Request) {
+    clientIP := r.Header.Get("X-Client-IP")
+    apiKey := r.Header.Get("API_KEY")
+    
+    var key string
+    if apiKey != "" {
+        key = "token:" + apiKey
+    } else if clientIP != "" {
+        key = "ip:" + clientIP
+    } else {
+        key = "ip:" + r.RemoteAddr
+    }
+    
+    maxReqs, _ := strconv.Atoi(os.Getenv("MAX_REQUESTS_PER_SECOND"))
+    if maxReqs == 0 {
+        maxReqs = 100
+    }
+    
+    rl := NewRateLimiter(
+        maxReqs,
+        time.Second,
+        time.Duration(maxReqs)*time.Second,
+    )
+    
+    if !rl.allowRequest(key) {
+        w.WriteHeader(http.StatusTooManyRequests)
+        json.NewEncoder(w).Encode(map[string]interface{}{
+            "allowed": false,
+            "message": "Rate limit exceeded",
+            "retry_after": rl.blockDuration.Seconds(),
+        })
+        return
+    }
+    
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "allowed": true,
+        "remaining": maxReqs - 1,
+    })
+}
+
+// Original proxy handler (for direct testing)
+func proxyHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]string{
+        "status": "request allowed",
+        "path": r.URL.Path,
+    })
+}
+
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(map[string]string{
+        "status": "healthy",
+        "service": "rate-limiter",
+    })
+}
+
+func main() {
+    // Load environment variables
+    if err := godotenv.Load(); err != nil {
+        log.Println("No .env file found, using environment variables")
+    }
+    
+    // Initialize Redis
+    redisAddr := os.Getenv("REDIS_ADDR")
+    if redisAddr == "" {
+        redisAddr = "localhost:6379"
+    }
+    
+    redisClient = redis.NewClient(&redis.Options{
+        Addr:     redisAddr,
+        Password: os.Getenv("REDIS_PASSWORD"),
+        DB:       0,
+    })
+    
+    // Test Redis connection
+    if err := redisClient.Ping(ctx).Err(); err != nil {
+        log.Fatal("Failed to connect to Redis:", err)
+    }
+    log.Println("Connected to Redis")
+    
+    // Setup routes
+    http.HandleFunc("/health", healthCheck)
+    http.HandleFunc("/check", rateLimitCheckHandler)  // NEW: Endpoint for API Gateway
+    http.HandleFunc("/", rateLimitMiddleware(proxyHandler))
+    
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8081"
+    }
+    
+    log.Printf("Rate Limiter starting on port %s", port)
+    log.Println("Available endpoints:")
+    log.Println("  GET /health - Health check")
+    log.Println("  GET /check  - Rate limit check for API Gateway")
+    log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+// Keep existing rateLimitMiddleware for direct testing
 func rateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
     maxReqs, _ := strconv.Atoi(os.Getenv("MAX_REQUESTS_PER_SECOND"))
     if maxReqs == 0 {
@@ -95,68 +197,13 @@ func rateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusTooManyRequests)
             json.NewEncoder(w).Encode(map[string]interface{}{
-                "error": "too many requests",
-                "message": "you have reached the maximum number of requests allowed within a certain time frame",
-                "retry_after": rl.blockDuration.Seconds(),
+                "error":        "too many requests",
+                "message":      "you have reached the maximum number of requests allowed within a certain time frame",
+                "retry_after":  rl.blockDuration.Seconds(),
             })
             return
         }
         
         next.ServeHTTP(w, r)
     }
-}
-
-func proxyHandler(w http.ResponseWriter, r *http.Request) {
-    // Forward request to the appropriate service
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{
-        "status": "request allowed",
-        "path": r.URL.Path,
-    })
-}
-
-func healthCheck(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(map[string]string{
-        "status": "healthy",
-        "service": "rate-limiter",
-    })
-}
-
-func main() {
-    // Load environment variables
-    if err := godotenv.Load(); err != nil {
-        log.Println("No .env file found")
-    }
-    
-    // Initialize Redis
-    redisAddr := os.Getenv("REDIS_ADDR")
-    if redisAddr == "" {
-        redisAddr = "localhost:6379"
-    }
-    
-    redisClient = redis.NewClient(&redis.Options{
-        Addr: redisAddr,
-        Password: os.Getenv("REDIS_PASSWORD"),
-        DB: 0,
-    })
-    
-    // Test Redis connection
-    if err := redisClient.Ping(ctx).Err(); err != nil {
-        log.Fatal("Failed to connect to Redis:", err)
-    }
-    log.Println("Connected to Redis")
-    
-    // Setup routes
-    http.HandleFunc("/health", healthCheck)
-    http.HandleFunc("/", rateLimitMiddleware(proxyHandler))
-    
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "8081"
-    }
-    
-    log.Printf("Rate Limiter starting on port %s", port)
-    log.Fatal(http.ListenAndServe(":"+port, nil))
 }
