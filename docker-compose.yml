@@ -1,0 +1,119 @@
+services:
+  # Redis - using local build (not pulling from Docker Hub)
+  redis:
+    build: ./redis-local
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Load Balancer
+  load-balancer:
+    build: ./load-balancer
+    container_name: load-balancer
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    depends_on:
+      - api-gateway-1
+      - api-gateway-2
+      - api-gateway-3
+    restart: unless-stopped
+
+  # API Gateway Instances
+  api-gateway-1:
+    build: ./api-gateway
+    container_name: api-gateway-1
+    environment:
+      - PORT=8080
+      - AUTH_SERVICE_URL=http://auth-service:8082
+      - EVENT_SERVICE_URL=http://event-service:8083
+      - REGISTRATION_SERVICE_URL=http://registration-service:8084
+    networks:
+      - app-network
+    depends_on:
+      - auth-service
+      - event-service
+      - registration-service
+    restart: unless-stopped
+
+  api-gateway-2:
+    build: ./api-gateway
+    container_name: api-gateway-2
+    environment:
+      - PORT=8081
+      - AUTH_SERVICE_URL=http://auth-service:8082
+      - EVENT_SERVICE_URL=http://event-service:8083
+      - REGISTRATION_SERVICE_URL=http://registration-service:8084
+    networks:
+      - app-network
+    depends_on:
+      - auth-service
+      - event-service
+      - registration-service
+    restart: unless-stopped
+
+  api-gateway-3:
+    build: ./api-gateway
+    container_name: api-gateway-3
+    environment:
+      - PORT=8082
+      - AUTH_SERVICE_URL=http://auth-service:8082
+      - EVENT_SERVICE_URL=http://event-service:8083
+      - REGISTRATION_SERVICE_URL=http://registration-service:8084
+    networks:
+      - app-network
+    depends_on:
+      - auth-service
+      - event-service
+      - registration-service
+    restart: unless-stopped
+
+  # Rate Limiter
+  rate-limiter:
+    build: ./rate-limiter
+    container_name: rate-limiter
+    environment:
+      - PORT=8081
+      - REDIS_ADDR=redis:6379
+      - MAX_REQUESTS_PER_SECOND=100
+    networks:
+      - app-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Microservices
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      - PORT=8082
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  event-service:
+    build: ./event-service
+    container_name: event-service
+    environment:
+      - PORT=8083
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  registration-service:
+    build: ./registration-service
+    container_name: registration-service
+    environment:
+      - PORT=8084
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
