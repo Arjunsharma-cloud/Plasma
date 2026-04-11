@@ -132,7 +132,7 @@ export default function OrganizerPage() {
 
     const updatedEvents = addEvent(newEventObj);
     setEvents(updatedEvents);
-    toast.success("Event created successfully!");
+    toast.success("Event created successfully");
     setShowAddEvent(false);
     setNewEvent({
       title: "",
@@ -152,7 +152,7 @@ export default function OrganizerPage() {
     if (confirm("Are you sure you want to delete this event?")) {
       const updatedEvents = deleteEvent(eventId);
       setEvents(updatedEvents);
-      toast.success("Event deleted successfully!");
+      toast.success("Event deleted");
     }
   };
 
@@ -182,7 +182,7 @@ export default function OrganizerPage() {
     notifications.push(newNotification);
     localStorage.setItem("notifications", JSON.stringify(notifications));
 
-    toast.success(`Notification sent to ${userEmails.length} users!`);
+    toast.success(`Notification sent to ${userEmails.length} users`);
     setShowNotificationModal(false);
     setNotificationMessage("");
     setSelectedEventForNotification(null);
@@ -202,43 +202,40 @@ export default function OrganizerPage() {
 
   if (!isAuthorized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <X className="w-10 h-10 text-red-600" />
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
+            <X className="w-8 h-8 text-red-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-4">You don't have permission to access this page.</p>
-          <Link href="/" className="text-blue-600 hover:underline">Return to Home</Link>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Access Denied</h2>
+          <p className="text-slate-600 mb-4">You lack permissions to view this dashboard.</p>
+          <Link href="/" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">Return to Home</Link>
         </div>
       </div>
     );
   }
 
   const stats = [
-    { label: "Total Events", value: events.length, icon: Calendar, color: "blue" },
-    { label: "Total Registrations", value: getTotalRegistrations(), icon: Users, color: "green" },
-    { label: "Active Events", value: getActiveEvents(), icon: Activity, color: "purple" },
-    { label: "Avg Registrations/Event", value: events.length ? Math.round(getTotalRegistrations() / events.length) : 0, icon: TrendingUp, color: "orange" },
+    { label: "Total Events", value: events.length, icon: Calendar },
+    { label: "Total Registrations", value: getTotalRegistrations(), icon: Users },
+    { label: "Active Events", value: getActiveEvents(), icon: Activity },
+    { label: "Avg Registrations/Event", value: events.length ? Math.round(getTotalRegistrations() / events.length) : 0, icon: TrendingUp },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      <nav className="bg-white shadow-md sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+      <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">E</span>
-              </div>
-              <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <span className="font-bold text-xl text-blue-700 tracking-tight">
                 EventHub Organizer
               </span>
             </Link>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {user?.first_name || user?.email}</span>
-              <Link href="/" className="text-gray-600 hover:text-blue-600 transition">
-                ← Back to Home
+            <div className="flex items-center space-x-6">
+              <span className="text-sm font-medium text-slate-600">Admin: {user?.email}</span>
+              <Link href="/" className="text-sm text-slate-500 hover:text-blue-600 transition-colors">
+                Back to Portal
               </Link>
             </div>
           </div>
@@ -246,23 +243,49 @@ export default function OrganizerPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Welcome back, Admin! 👋</h1>
-          <p className="text-gray-600 mt-1">Manage your events and track registrations</p>
+        <div className="mb-8 flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h1>
+            <p className="text-slate-500 mt-1">Manage operations, track registrations, and monitor analytics.</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                if (events.length === 0) {
+                  toast.error("No active events available");
+                  return;
+                }
+                setSelectedEventForNotification(events[0]);
+                setShowNotificationModal(true);
+              }}
+              className="flex items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium text-sm shadow-sm"
+            >
+              <Bell className="w-4 h-4 mr-2 text-slate-500" />
+              Notify Attendees
+            </button>
+            <button
+              onClick={() => setShowAddEvent(true)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Event
+            </button>
+          </div>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        {/* KPIs */}
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
           {stats.map((stat, idx) => {
             const Icon = stat.icon;
             return (
-              <div key={idx} className="bg-white rounded-2xl shadow-md p-6">
+              <div key={idx} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-500 text-sm">{stat.label}</p>
-                    <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
+                    <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">{stat.label}</p>
+                    <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
                   </div>
-                  <div className={`w-12 h-12 bg-${stat.color}-100 rounded-full flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 text-${stat.color}-600`} />
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+                    <Icon className="w-5 h-5 text-blue-600" />
                   </div>
                 </div>
               </div>
@@ -270,124 +293,152 @@ export default function OrganizerPage() {
           })}
         </div>
 
-        <div className="flex gap-4 mb-8">
-          <button
-            onClick={() => setShowAddEvent(true)}
-            className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:opacity-90 transition font-medium"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add New Event
-          </button>
-          <button
-            onClick={() => {
-              if (events.length === 0) {
-                toast.error("No events to send notifications for");
-                return;
-              }
-              setSelectedEventForNotification(events[0]);
-              setShowNotificationModal(true);
-            }}
-            className="flex items-center px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-medium"
-          >
-            <Bell className="w-5 h-5 mr-2" />
-            Send Notification
-          </button>
+        {/* Analytics Section - Overhauled to a professional table */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm mb-8">
+          <div className="px-6 py-5 border-b border-slate-200 bg-slate-50/50">
+            <h2 className="text-lg font-semibold text-slate-800 flex items-center">
+              <BarChart3 className="w-5 h-5 mr-2 text-blue-600" />
+              Registration Analytics
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            {events.length === 0 ? (
+              <p className="text-slate-500 text-center py-8 text-sm">No data available. Create an event to view analytics.</p>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Event Name</th>
+                    <th className="px-6 py-3 font-medium">Status</th>
+                    <th className="px-6 py-3 font-medium">Registered</th>
+                    <th className="px-6 py-3 font-medium">Capacity</th>
+                    <th className="px-6 py-3 font-medium w-1/3">Fill Rate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {events.map((event, idx) => {
+                    const count = getEventRegistrations(event.event_id).length;
+                    const capacity = event.capacity || 1; // Prevent division by zero
+                    const percentage = Math.min(Math.round((count / capacity) * 100), 100);
+                    const isActive = new Date(event.event_date) > new Date();
+
+                    return (
+                      <tr key={event.event_id || idx} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-slate-800">{event.title}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2.5 py-1 text-xs font-medium rounded-md border ${
+                            isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"
+                          }`}>
+                            {isActive ? "Active" : "Ended"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">{count}</td>
+                        <td className="px-6 py-4 text-slate-600">{event.capacity || "Unlimited"}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-700 font-medium w-10">{percentage}%</span>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  percentage >= 100 ? 'bg-red-500' : percentage > 75 ? 'bg-amber-500' : 'bg-blue-600'
+                                }`}
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden mb-8">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center">
+        {/* Events Management List */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm mb-8">
+          <div className="px-6 py-5 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-slate-800 flex items-center">
               <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-              My Events ({events.length})
+              Event Management
             </h2>
+            <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-1 rounded-md border border-slate-200">
+              {events.length} Total
+            </span>
           </div>
           
           {events.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No events created yet</p>
+            <div className="text-center py-16">
+              <p className="text-slate-500 mb-4">Your event repository is empty.</p>
               <button
                 onClick={() => setShowAddEvent(true)}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
               >
-                Create your first event
+                Create Initial Event
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-100">
               {events.map((event, index) => {
                 const eventRegistrations = getEventRegistrations(event.event_id);
                 return (
-                  <div key={event.event_id || index} className="p-6 hover:bg-gray-50 transition">
+                  <div key={event.event_id || index} className="p-6 hover:bg-slate-50 transition-colors">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            new Date(event.event_date) > new Date() 
-                              ? "bg-green-100 text-green-700" 
-                              : "bg-gray-100 text-gray-700"
-                          }`}>
-                            {new Date(event.event_date) > new Date() ? "Active" : "Ended"}
-                          </span>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-md border border-slate-200 uppercase tracking-wide">
                             {event.event_type}
                           </span>
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">{event.title}</h3>
-                        <p className="text-gray-600 text-sm mb-3">{event.description?.substring(0, 150)}...</p>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                          <div className="flex items-center text-gray-500">
-                            <Calendar className="w-4 h-4 mr-1" />
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">{event.title}</h3>
+                        <p className="text-slate-600 text-sm mb-4 leading-relaxed max-w-3xl">
+                          {event.description?.substring(0, 180)}...
+                        </p>
+                        <div className="flex flex-wrap gap-4 text-sm text-slate-500 font-medium">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1.5 text-slate-400" />
                             {new Date(event.event_date).toLocaleDateString()}
                           </div>
-                          <div className="flex items-center text-gray-500">
-                            <MapPin className="w-4 h-4 mr-1" />
+                          <div className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-1.5 text-slate-400" />
                             {event.location}
                           </div>
-                          <div className="flex items-center text-gray-500">
-                            <Trophy className="w-4 h-4 mr-1" />
-                            {event.prize}
+                          <div className="flex items-center">
+                            <Trophy className="w-4 h-4 mr-1.5 text-slate-400" />
+                            {event.prize || "No Prize"}
                           </div>
-                          <div className="flex items-center text-gray-500">
-                            <Users className="w-4 h-4 mr-1" />
-                            {eventRegistrations.length} / {event.capacity} registered
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4 mr-1.5 text-slate-400" />
+                            {eventRegistrations.length} / {event.capacity || "∞"} Attendees
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2 ml-4">
+                      <div className="flex gap-2 ml-6">
                         <button
                           onClick={() => setSelectedEventForDetails(event)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100"
                           title="View Details"
                         >
-                          <Eye className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedEventForNotification(event);
-                            setShowNotificationModal(true);
-                          }}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
-                          title="Send Notification"
-                        >
-                          <Bell className="w-5 h-5" />
+                          <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteEvent(event.event_id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
                           title="Delete Event"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
 
                     {eventRegistrations.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Registered Teams ({eventRegistrations.length}):</p>
+                      <div className="mt-5 pt-5 border-t border-slate-100">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Recent Registrations</p>
                         <div className="flex flex-wrap gap-2">
                           {eventRegistrations.map((reg, idx) => (
-                            <span key={reg.id || idx} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
-                              {reg.team_name} ({reg.user_email})
+                            <span key={reg.id || idx} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-medium rounded-md shadow-sm">
+                              {reg.team_name} <span className="text-slate-400 ml-1 font-normal">({reg.user_email})</span>
                             </span>
                           ))}
                         </div>
@@ -399,128 +450,84 @@ export default function OrganizerPage() {
             </div>
           )}
         </div>
-
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2 text-purple-600" />
-              Analytics - Registrations per Event
-            </h2>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {events.map((event, idx) => {
-                const count = getEventRegistrations(event.event_id).length;
-                const percentage = event.capacity ? (count / event.capacity) * 100 : 0;
-                return (
-                  <div key={event.event_id || idx}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium text-gray-700">{event.title}</span>
-                      <span className="text-gray-500">{count} / {event.capacity} registrations</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-              {events.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No events to display analytics</p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Add Event Modal */}
       {showAddEvent && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full mx-4 my-8">
-            <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800">Create New Event</h2>
-              <button onClick={() => setShowAddEvent(false)} className="p-1 hover:bg-gray-100 rounded-full">
-                <X className="w-6 h-6" />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-auto border border-slate-200">
+            <div className="sticky top-0 bg-white p-5 border-b border-slate-100 flex justify-between items-center rounded-t-xl">
+              <h2 className="text-xl font-bold text-slate-800">Create New Event</h2>
+              <button onClick={() => setShowAddEvent(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-5">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Event Title <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={newEvent.title}
                     onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
-                    placeholder="Enter event title"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                    placeholder="e.g., Q3 Engineering Summit"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
                   <textarea
                     value={newEvent.description}
                     onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
-                    rows={3}
-                    placeholder="Describe your event"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                    rows={4}
+                    placeholder="Enter comprehensive event details..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Date *</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Event Date <span className="text-red-500">*</span></label>
                   <input
                     type="datetime-local"
                     value={newEvent.event_date}
                     onChange={(e) => setNewEvent({ ...newEvent, event_date: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-700"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Registration Deadline</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Registration Deadline</label>
                   <input
                     type="datetime-local"
                     value={newEvent.registration_deadline}
                     onChange={(e) => setNewEvent({ ...newEvent, registration_deadline: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-700"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Capacity</label>
                   <input
                     type="number"
                     value={newEvent.capacity}
                     onChange={(e) => setNewEvent({ ...newEvent, capacity: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
-                    placeholder="Max participants"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                    placeholder="Max attendees"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Location</label>
                   <input
                     type="text"
                     value={newEvent.location}
                     onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
-                    placeholder="Venue or Online"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                    placeholder="Venue or virtual link"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prize</label>
-                  <input
-                    type="text"
-                    value={newEvent.prize}
-                    onChange={(e) => setNewEvent({ ...newEvent, prize: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
-                    placeholder="Prize pool"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Event Type</label>
                   <select
                     value={newEvent.event_type}
                     onChange={(e) => setNewEvent({ ...newEvent, event_type: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
                   >
                     <option value="hackathon">Hackathon</option>
                     <option value="workshop">Workshop</option>
@@ -529,36 +536,46 @@ export default function OrganizerPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Min Team Size</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Prize Pool</label>
+                  <input
+                    type="text"
+                    value={newEvent.prize}
+                    onChange={(e) => setNewEvent({ ...newEvent, prize: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                    placeholder="e.g., $5,000 Total"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Min Team Size</label>
                   <input
                     type="number"
                     value={newEvent.min_team_size}
                     onChange={(e) => setNewEvent({ ...newEvent, min_team_size: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Team Size</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Max Team Size</label>
                   <input
                     type="number"
                     value={newEvent.max_team_size}
                     onChange={(e) => setNewEvent({ ...newEvent, max_team_size: e.target.value })}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
                   />
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={handleAddEvent}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:opacity-90"
-                >
-                  Create Event
-                </button>
+              <div className="flex gap-3 mt-8 pt-5 border-t border-slate-100">
                 <button
                   onClick={() => setShowAddEvent(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium text-sm transition-colors"
                 >
                   Cancel
+                </button>
+                <button
+                  onClick={handleAddEvent}
+                  className="flex-1 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors shadow-sm"
+                >
+                  Confirm & Create Event
                 </button>
               </div>
             </div>
@@ -568,37 +585,42 @@ export default function OrganizerPage() {
 
       {/* Notification Modal */}
       {showNotificationModal && selectedEventForNotification && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Send Notification</h2>
-              <p className="text-gray-600 text-sm mb-4">
-                Send notification to users registered for: <strong>{selectedEventForNotification.title}</strong>
-              </p>
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-3 border border-blue-100">
+                  <Send className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Broadcast Message</h2>
+                  <p className="text-slate-500 text-xs font-medium">To: {selectedEventForNotification.title}</p>
+                </div>
+              </div>
+              
               <textarea
                 value={notificationMessage}
                 onChange={(e) => setNotificationMessage(e.target.value)}
-                className="w-full p-3 border rounded-lg mb-4"
-                rows={4}
-                placeholder="Enter your notification message..."
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg mb-5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none"
+                rows={5}
+                placeholder="Type your notification message here..."
               />
               <div className="flex gap-3">
-                <button
-                  onClick={handleSendNotification}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  <Send className="w-4 h-4 inline mr-2" />
-                  Send Notification
-                </button>
                 <button
                   onClick={() => {
                     setShowNotificationModal(false);
                     setSelectedEventForNotification(null);
                     setNotificationMessage("");
                   }}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium text-sm transition-colors"
                 >
                   Cancel
+                </button>
+                <button
+                  onClick={handleSendNotification}
+                  className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-medium text-sm transition-colors shadow-sm flex justify-center items-center"
+                >
+                  Dispatch Broadcast
                 </button>
               </div>
             </div>
@@ -608,54 +630,97 @@ export default function OrganizerPage() {
 
       {/* Event Details Modal */}
       {selectedEventForDetails && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800">{selectedEventForDetails.title}</h2>
-              <button onClick={() => setSelectedEventForDetails(null)} className="p-1 hover:bg-gray-100 rounded-full">
-                <X className="w-6 h-6" />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col border border-slate-200">
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl shrink-0">
+              <h2 className="text-xl font-bold text-slate-800 tracking-tight">{selectedEventForDetails.title}</h2>
+              <button onClick={() => setSelectedEventForDetails(null)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition-colors border border-transparent hover:border-slate-200">
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6">
-              <div className="mb-4 flex gap-2">
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{selectedEventForDetails.event_type}</span>
-                <span className={`px-3 py-1 rounded-full text-sm ${
+            <div className="p-6 overflow-y-auto">
+              <div className="flex flex-wrap gap-2 mb-6">
+                <span className="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-xs font-semibold uppercase tracking-wider">
+                  {selectedEventForDetails.event_type}
+                </span>
+                <span className={`px-2.5 py-1 rounded-md text-xs font-semibold uppercase tracking-wider border ${
                   new Date(selectedEventForDetails.event_date) > new Date() 
-                    ? "bg-green-100 text-green-700" 
-                    : "bg-gray-100 text-gray-700"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                    : "bg-slate-100 text-slate-600 border-slate-200"
                 }`}>
                   {new Date(selectedEventForDetails.event_date) > new Date() ? "Active" : "Ended"}
                 </span>
               </div>
-              <p className="text-gray-700 mb-6">{selectedEventForDetails.description}</p>
-              <div className="space-y-3 mb-6">
+              
+              <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 mb-6">
+                <p className="text-slate-700 text-sm leading-relaxed">{selectedEventForDetails.description}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div className="flex items-start">
-                  <Calendar className="w-5 h-5 mr-3 text-blue-600 mt-0.5" />
-                  <div><p className="font-medium text-gray-800">Event Date</p><p className="text-gray-600">{new Date(selectedEventForDetails.event_date).toLocaleString()}</p></div>
+                  <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center mr-3 shrink-0">
+                    <Calendar className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Date & Time</p>
+                    <p className="text-sm font-medium text-slate-800">{new Date(selectedEventForDetails.event_date).toLocaleString()}</p>
+                  </div>
                 </div>
                 <div className="flex items-start">
-                  <MapPin className="w-5 h-5 mr-3 text-blue-600 mt-0.5" />
-                  <div><p className="font-medium text-gray-800">Location</p><p className="text-gray-600">{selectedEventForDetails.location}</p></div>
+                  <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center mr-3 shrink-0">
+                    <MapPin className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Location</p>
+                    <p className="text-sm font-medium text-slate-800">{selectedEventForDetails.location}</p>
+                  </div>
                 </div>
                 <div className="flex items-start">
-                  <Trophy className="w-5 h-5 mr-3 text-yellow-600 mt-0.5" />
-                  <div><p className="font-medium text-gray-800">Prize</p><p className="text-gray-600">{selectedEventForDetails.prize}</p></div>
+                  <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center mr-3 shrink-0">
+                    <Trophy className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Prize Pool</p>
+                    <p className="text-sm font-medium text-slate-800">{selectedEventForDetails.prize || "N/A"}</p>
+                  </div>
                 </div>
                 <div className="flex items-start">
-                  <Users className="w-5 h-5 mr-3 text-green-600 mt-0.5" />
-                  <div><p className="font-medium text-gray-800">Team Size</p><p className="text-gray-600">{selectedEventForDetails.min_team_size} - {selectedEventForDetails.max_team_size} members</p></div>
+                  <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center mr-3 shrink-0">
+                    <Users className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Team Configuration</p>
+                    <p className="text-sm font-medium text-slate-800">{selectedEventForDetails.min_team_size} - {selectedEventForDetails.max_team_size} members</p>
+                  </div>
                 </div>
               </div>
-              <h3 className="font-semibold text-gray-800 mb-3">Registered Teams ({getEventRegistrations(selectedEventForDetails.event_id).length})</h3>
-              <div className="space-y-2">
-                {getEventRegistrations(selectedEventForDetails.event_id).map((reg, idx) => (
-                  <div key={reg.id || idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div><p className="font-medium">{reg.team_name}</p><p className="text-sm text-gray-500">{reg.user_email}</p></div>
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">{reg.status}</span>
+
+              <div className="border-t border-slate-100 pt-6">
+                <h3 className="font-semibold text-slate-800 mb-4 flex items-center">
+                  Participant Roster 
+                  <span className="ml-2 bg-slate-100 text-slate-600 py-0.5 px-2 rounded-md text-xs border border-slate-200">
+                    {getEventRegistrations(selectedEventForDetails.event_id).length}
+                  </span>
+                </h3>
+                
+                {getEventRegistrations(selectedEventForDetails.event_id).length === 0 ? (
+                  <div className="bg-slate-50 border border-dashed border-slate-200 rounded-lg p-6 text-center">
+                    <p className="text-slate-500 text-sm">No registrations on file yet.</p>
                   </div>
-                ))}
-                {getEventRegistrations(selectedEventForDetails.event_id).length === 0 && (
-                  <p className="text-gray-500 text-center py-4">No registrations yet</p>
+                ) : (
+                  <div className="grid gap-3">
+                    {getEventRegistrations(selectedEventForDetails.event_id).map((reg, idx) => (
+                      <div key={reg.id || idx} className="flex justify-between items-center p-3.5 bg-white border border-slate-200 rounded-lg shadow-sm hover:border-blue-200 transition-colors">
+                        <div>
+                          <p className="font-semibold text-sm text-slate-800">{reg.team_name}</p>
+                          <p className="text-xs font-medium text-slate-500 mt-0.5">{reg.user_email}</p>
+                        </div>
+                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium rounded-md uppercase tracking-wide">
+                          {reg.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

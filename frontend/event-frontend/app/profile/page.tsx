@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, Mail, Phone, GraduationCap, Edit2, Save, X, Calendar, Trophy, Users, Sparkles } from "lucide-react";
+import { Mail, Phone, GraduationCap, Edit2, Save, X, Calendar, Trophy, Users, Activity, ChevronRight, Shield } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function ProfilePage() {
@@ -44,7 +44,6 @@ export default function ProfilePage() {
           college: data.college || "",
         });
         
-        // Update user in localStorage with fresh data
         const updatedUser = { ...user, ...data };
         setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -92,118 +91,129 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your profile...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-sans">
+        <Activity className="w-6 h-6 animate-pulse mr-2" /> Loading profile...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Profile Header Card */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="h-32 bg-gradient-to-r from-blue-600 to-purple-600 relative">
-            <div className="absolute -bottom-12 left-8">
-              <div className="w-24 h-24 bg-white rounded-2xl shadow-lg flex items-center justify-center">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <span className="text-3xl font-bold text-white">
-                    {profile.first_name?.charAt(0) || user?.email?.charAt(0) || "U"}
-                  </span>
-                </div>
-              </div>
-            </div>
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-12">
+      {/* Top Navigation Bar */}
+      <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+          <div className="flex items-center space-x-2 text-sm font-medium text-slate-500">
+            <Shield className="w-4 h-4 text-emerald-500" />
+            <span>Authenticated Session</span>
           </div>
-          
-          <div className="pt-16 pb-8 px-8">
-            <div className="flex justify-between items-start mb-6">
+        </div>
+      </nav>
+
+      <div className="max-w-5xl mx-auto px-6 py-10">
+        
+        {/* Profile Details Section */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+          <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <span className="text-3xl font-bold text-blue-600 uppercase">
+                  {profile.first_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                </span>
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  {profile.first_name} {profile.last_name}
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  {profile.first_name || "User"} {profile.last_name}
                 </h1>
-                <p className="text-gray-500 flex items-center mt-1">
-                  <Mail className="w-4 h-4 mr-1" />
+                <p className="text-slate-500 flex items-center mt-1 text-sm">
+                  <Mail className="w-4 h-4 mr-1.5" />
                   {user?.email}
                 </p>
               </div>
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
-              >
-                {isEditing ? <X className="w-4 h-4 mr-2" /> : <Edit2 className="w-4 h-4 mr-2" />}
-                {isEditing ? "Cancel" : "Edit Profile"}
-              </button>
             </div>
+            
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                isEditing 
+                  ? "bg-slate-100 text-slate-700 hover:bg-slate-200" 
+                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm"
+              }`}
+            >
+              {isEditing ? <X className="w-4 h-4 mr-2" /> : <Edit2 className="w-4 h-4 mr-2" />}
+              {isEditing ? "Cancel Edit" : "Edit Details"}
+            </button>
+          </div>
 
-            {/* Profile Info Display */}
+          <div className="p-8">
             {!isEditing ? (
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="flex items-center p-4 bg-gray-50 rounded-xl">
-                  <Phone className="w-5 h-5 text-blue-600 mr-3" />
+                <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl flex items-start space-x-4">
+                  <div className="p-2 bg-white text-slate-400 rounded-lg shadow-sm border border-slate-100">
+                    <Phone className="w-5 h-5" />
+                  </div>
                   <div>
-                    <p className="text-sm text-gray-500">Phone Number</p>
-                    <p className="text-gray-800 font-medium">{profile.phone || "Not set"}</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Phone Number</p>
+                    <p className="text-sm font-medium text-slate-900">{profile.phone || "Not configured"}</p>
                   </div>
                 </div>
-                <div className="flex items-center p-4 bg-gray-50 rounded-xl">
-                  <GraduationCap className="w-5 h-5 text-purple-600 mr-3" />
+                <div className="p-5 bg-slate-50 border border-slate-100 rounded-xl flex items-start space-x-4">
+                  <div className="p-2 bg-white text-slate-400 rounded-lg shadow-sm border border-slate-100">
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
                   <div>
-                    <p className="text-sm text-gray-500">College/University</p>
-                    <p className="text-gray-800 font-medium">{profile.college || "Not set"}</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Institution</p>
+                    <p className="text-sm font-medium text-slate-900">{profile.college || "Not configured"}</p>
                   </div>
                 </div>
               </div>
             ) : (
-              // Edit Mode
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 gap-5 bg-slate-50 p-6 rounded-xl border border-slate-100">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">First Name</label>
                   <input
                     type="text"
                     value={profile.first_name}
                     onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-3 bg-white border border-slate-200 rounded-lg focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 transition-all outline-none text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Last Name</label>
                   <input
                     type="text"
                     value={profile.last_name}
                     onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-3 bg-white border border-slate-200 rounded-lg focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 transition-all outline-none text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Phone Number</label>
                   <input
                     type="tel"
                     value={profile.phone}
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="+1 234 567 8900"
+                    className="w-full p-3 bg-white border border-slate-200 rounded-lg focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 transition-all outline-none text-sm"
+                    placeholder="+1 (555) 000-0000"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">College</label>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">College</label>
                   <input
                     type="text"
                     value={profile.college}
                     onChange={(e) => setProfile({ ...profile, college: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="MIT University"
+                    className="w-full p-3 bg-white border border-slate-200 rounded-lg focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 transition-all outline-none text-sm"
+                    placeholder="University Name"
                   />
                 </div>
-                <div className="md:col-span-2 flex justify-end mt-2">
+                <div className="md:col-span-2 pt-4 flex justify-end">
                   <button
                     onClick={handleUpdateProfile}
-                    className="flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition"
+                    className="flex items-center px-6 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-600/20 focus:outline-none focus:ring-4 focus:ring-blue-600/10 transition-all"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Save Changes
+                    Save Configuration
                   </button>
                 </div>
               </div>
@@ -211,103 +221,106 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <div className="flex items-center justify-between">
+        {/* Analytics Dashboard Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Events Participated</p>
-                <p className="text-3xl font-bold text-blue-600">{registeredEvents.length}</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Events</p>
+                <p className="text-3xl font-extrabold text-slate-900">{registeredEvents.length}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-blue-600" />
+              <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600">
+                <Trophy className="w-5 h-5" />
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <div className="flex items-center justify-between">
+          
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Active Teams</p>
-                <p className="text-3xl font-bold text-purple-600">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Active Teams</p>
+                <p className="text-3xl font-extrabold text-slate-900">
                   {registeredEvents.filter(e => e.team_name).length}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-purple-600" />
+              <div className="p-2.5 bg-slate-50 rounded-lg text-slate-600 border border-slate-100">
+                <Users className="w-5 h-5" />
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <div className="flex items-center justify-between">
+          
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-500 text-sm">Member Since</p>
-                <p className="text-3xl font-bold text-green-600">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Member Since</p>
+                <p className="text-3xl font-extrabold text-slate-900">
                   {new Date().getFullYear()}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-green-600" />
+              <div className="p-2.5 bg-slate-50 rounded-lg text-slate-600 border border-slate-100">
+                <Calendar className="w-5 h-5" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Registered Events Section */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-              My Registered Events
-            </h2>
+        {/* Event Roster Section */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-8 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+            <h2 className="text-lg font-bold text-slate-900">Event Roster</h2>
+            <Link href="/events" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+              Browse Directory &rarr;
+            </Link>
           </div>
           
           {registeredEvents.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-10 h-10 text-gray-400" />
+            <div className="text-center py-16 px-6">
+              <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-slate-400" />
               </div>
-              <p className="text-gray-500 mb-4">You haven't registered for any events yet</p>
+              <p className="text-slate-600 mb-6 font-medium">No active registrations found.</p>
               <Link
                 href="/events"
-                className="inline-block px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition"
+                className="inline-flex items-center px-6 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 shadow-sm transition-colors"
               >
-                Browse Events
+                View Available Events
               </Link>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-100">
               {registeredEvents.map((event, index) => (
-                <div key={index} className="p-6 hover:bg-gray-50 transition">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full mr-2">
-                          Registered
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {new Date(event.registered_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                        {event.event_title}
-                      </h3>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Users className="w-4 h-4 mr-1" />
-                        Team: {event.team_name || "Individual Participant"}
-                      </div>
+                <div key={index} className="p-6 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-1.5 gap-3">
+                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-md uppercase tracking-wider">
+                        Confirmed
+                      </span>
+                      <span className="text-xs font-medium text-slate-500">
+                        {new Date(event.registered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
                     </div>
-                    <Link
-                      href={`/events/${event.event_id}`}
-                      className="px-4 py-2 text-sm border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition"
-                    >
-                      View Event
-                    </Link>
+                    <h3 className="text-base font-bold text-slate-900 mb-1">
+                      {event.event_title}
+                    </h3>
+                    <div className="flex items-center text-sm text-slate-500">
+                      <Users className="w-4 h-4 mr-1.5" />
+                      {event.team_name || "Individual Entry"}
+                    </div>
                   </div>
+                  
+                  <Link
+                    href={`/events/${event.event_id}`}
+                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium border border-slate-200 bg-white text-slate-700 rounded-lg hover:border-slate-300 hover:bg-slate-50 shadow-sm transition-all sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+                  >
+                    View Details
+                    <ChevronRight className="w-4 h-4 ml-1 text-slate-400" />
+                  </Link>
                 </div>
               ))}
             </div>
           )}
         </div>
+        
       </div>
     </div>
   );
